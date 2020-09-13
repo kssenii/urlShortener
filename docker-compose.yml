@@ -17,6 +17,7 @@ services:
       DB_USER: "postgres"
       DB_PASSWORD: "postgres"
       DB_NAME: "urlsdb"
+      APP_PORT: "9090"
 
   database:
     image: postgres:latest

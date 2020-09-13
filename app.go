@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	handlers "handlersModule/handlers"
 	"log"
 	"net/http"
@@ -47,7 +48,7 @@ func main() {
 
 	serverLogger := log.New(os.Stdout, "ServerLog ", log.LstdFlags)
 	server := &http.Server{
-		Addr:         ":9090",
+		Addr:         fmt.Sprintf(":%s", os.Getenv("APP_PORT")),
 		Handler:      serveMux,
 		IdleTimeout:  120 * time.Second,
 		ReadTimeout:  1 * time.Second,
@@ -55,7 +56,7 @@ func main() {
 	}
 
 	go func() {
-		serverLogger.Println("Starting server on port 9090")
+		serverLogger.Println("Starting server on port", os.Getenv("APP_PORT"))
 
 		err := server.ListenAndServe()
 		if err != nil {

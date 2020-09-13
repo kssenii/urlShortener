@@ -17,6 +17,7 @@ type DBStorage struct {
 const (
 	TABLE_NAME = "URLdata"
 	URL        = "url"
+	SURL       = "short-url"
 	ID         = "id"
 )
 
@@ -52,7 +53,11 @@ func (ds *DBStorage) InsertData(data *Data) error {
 
 	err := ds.db.QueryRow(fmt.Sprintf("SELECT MAX(id) + 1 FROM %s", TABLE_NAME)).Scan(&data.ID)
 
-	EncodeBase62(data)
+	/// Generate url if custom url not added
+	if data.ShortURL == "" {
+		EncodeBase62(data)
+	}
+
 	_, err = ds.db.Query(fmt.Sprintf("INSERT INTO %s VALUES (%d, '%s', '%s')", TABLE_NAME, data.ID, data.URL, data.ShortURL))
 
 	if err != nil {
@@ -67,9 +72,14 @@ func (ds *DBStorage) SelectData(data *Data, search string) (bool, error) {
 
 	var query string
 	if search == URL {
+		log.Printf("[DEBUG] Searching for url %s", data.URL)
 		query = fmt.Sprintf("SELECT id, url, short_url FROM %s WHERE url = '%s'", TABLE_NAME, data.URL)
 	} else if search == ID {
+		log.Printf("[DEBUG] Searching for id %d", data.ID)
 		query = fmt.Sprintf("SELECT id, url, short_url FROM %s WHERE id = %d", TABLE_NAME, data.ID)
+	} else if search == SURL {
+		log.Printf("[DEBUG] Searching for url %s", data.ShortURL)
+		query = fmt.Sprintf("SELECT id, url, short_url FROM %s WHERE short_url = '%s'", TABLE_NAME, data.ShortURL)
 	}
 
 	rows, err := ds.db.Query(query)

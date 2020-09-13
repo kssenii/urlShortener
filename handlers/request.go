@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -11,7 +12,6 @@ import (
 type Request struct {
 	log       *log.Logger
 	dbHandler *DBStorage
-	idCounter int64
 }
 
 type Error struct {
@@ -23,7 +23,6 @@ func NewRequest(dh *DBStorage) *Request {
 	return &Request{
 		log:       log.New(os.Stdout, "RequestLog ", log.LstdFlags),
 		dbHandler: dh,
-		idCounter: 0,
 	}
 }
 
@@ -52,6 +51,11 @@ func (request *Request) EncodeURL(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	data.URL = data.ShortURL
+	if !strings.Contains(data.URL, "http") {
+		data.URL = fmt.Sprintf("http://localhost:%s/%s", os.Getenv("APP_PORT"), data.URL)
+	}
+	data.ShortURL = ""
+
 	errRet := data.ToJSON(rw)
 	if errRet != nil {
 		request.log.Println("[ERROR] Unable to parse JSON. Reason: ", errRet)
@@ -66,16 +70,9 @@ func (request *Request) DecodeURL(rw http.ResponseWriter, r *http.Request) {
 	var err error
 	var exists bool
 
-	data.ShortURL = strings.TrimPrefix(data.URL, "http://localhost:9090/")
-	data.URL = ""
+	data.ShortURL = strings.TrimPrefix(data.URL, fmt.Sprintf("http://localhost:%s/", os.Getenv("APP_PORT")))
 
-	err = DecodeBase62(data)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	exists, err = request.dbHandler.SelectData(data, ID)
+	exists, err = request.dbHandler.SelectData(data, SURL)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -86,6 +83,7 @@ func (request *Request) DecodeURL(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	data.ShortURL = ""
 	err = data.ToJSON(rw)
 	if err != nil {
 		request.log.Println("[ERROR] Unable to parse JSON. Reason: ", err)
@@ -99,13 +97,7 @@ func (request *Request) Redirect(rw http.ResponseWriter, r *http.Request) {
 	var data Data
 	data.ShortURL = r.URL.Path[len("/"):]
 
-	err := DecodeBase62(&data)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	exists, err := request.dbHandler.SelectData(&data, ID)
+	exists, err := request.dbHandler.SelectData(&data, SURL)
 
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)

@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"gopkg.in/go-playground/validator.v9"
@@ -42,7 +44,7 @@ func (data *Data) ValidateShort() error {
 func checkShortURL(fl validator.FieldLevel) bool {
 
 	url := fl.Field().String()
-	if strings.HasPrefix(url, "http://localhost:9090/") {
+	if strings.HasPrefix(url, fmt.Sprintf("http://localhost:%s/", os.Getenv("APP_PORT"))) {
 		return true
 	}
 
